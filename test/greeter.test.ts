@@ -1,21 +1,35 @@
 import { expect } from 'chai';
 import { getWallet, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
+import { Contract } from 'ethers';
+import { Wallet } from 'zksync-ethers';
 
-describe('Greeter', function () {
-  it("Should return the new greeting once it's changed", async function () {
-    const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+describe('SocialDapp', function () {
 
-    const greeting = "Hello world!";
-    const greeter = await deployContract("Greeter", [greeting], { wallet, silent: true });
+  let socialMedia : Contract;
+  let user1 : Wallet;
+  let user2 : Wallet;
+  let deployer : Wallet
 
-    expect(await greeter.greet()).to.eq(greeting);
+  before(async function() {
+    user1 = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+    user2 = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
 
-    const newGreeting = "Hola, mundo!";
-    const setGreetingTx = await greeter.setGreeting(newGreeting);
+    socialMedia = await deployContract("Freelance", [], { wallet: deployer , silent: true });
+  })
+
+  it('should register a user', async function () {
+    const username = 'user1';
+
+    await (socialMedia.connect(user1) as Contract).registerUser(username);
+    const user = await socialMedia.users(user1.address);
+
+    expect(user.username).to.equal(username);
+    expect(user.userAddress).to.equal(user1.address);
+    expect(user.isRegistered).to.be.true;
+
+    const events = await socialMedia.queryFilter('UserRegistered');
+    expect(events.length).to.equal(1);
     
-    // wait until the transaction is processed
-    await setGreetingTx.wait();
-
-    expect(await greeter.greet()).to.equal(newGreeting);
   });
+ 
 });
