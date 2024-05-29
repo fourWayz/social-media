@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { useContract } from '../../lib/ContractContext';
+import { useContract } from '../lib/ContractContext';
 import { ethers } from 'ethers';
 // import logo from '../assets/logo.png';
 
