@@ -76,4 +76,10 @@ describe('SocialDapp', function () {
     expect(events[1].toString()).to.equal('0'); // post ID
     expect(events[2]).to.equal(commentContent); // comment
   });
+
+  it('should return correct user details by address', async function () {
+    const userDetails = await socialMedia.getUserByAddress(user1.address);
+    expect(userDetails.userAddress).to.equal(user1.address);
+    expect(userDetails.isRegistered).to.equal(true);
+  });
 });
