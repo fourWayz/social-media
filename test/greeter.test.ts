@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { getWallet, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
-import { Contract } from 'ethers';
+import { Contract, EventLog } from 'ethers';
 import { Wallet } from 'zksync-ethers';
 
 describe('SocialDapp', function () {
@@ -50,7 +50,7 @@ describe('SocialDapp', function () {
     await (socialMedia.connect(user2) as Contract).registerUser('user2');
     await (socialMedia.connect(user2) as Contract).likePost(0);
     const post = await socialMedia.getPost(0);
-    expect(post.likes).to.equal(1);
+    expect(post.likes.toString()).to.equal('1');
     expect(post.author).to.equal(user1.address);
   
   });
@@ -66,13 +66,14 @@ describe('SocialDapp', function () {
     expect(comment.content).to.equal(commentContent);
 
     const post = await socialMedia.getPost(0);
-    expect(post.commentsCount).to.equal(1);
+    expect(post.commentsCount.toString()).to.equal('1');
 
-    const events = await socialMedia.queryFilter('CommentAdded');
-    console.log(events)
-    // expect(events.length).to.equal(1);
-    // expect(events[0].args.commenter).to.equal(user2.address);
-    // expect(events[0].args.postId).to.equal(0);
-    // expect(events[0].args.content).to.equal(commentContent);
+    const eventsQuery = await socialMedia.queryFilter('CommentAdded');    
+    const eventData = eventsQuery[0] as EventLog;
+    const events = eventData.args;
+
+    expect(events[0]).to.equal(user2.address); // commenter
+    expect(events[1].toString()).to.equal('0'); // post ID
+    expect(events[2]).to.equal(commentContent); // comment
   });
 });
