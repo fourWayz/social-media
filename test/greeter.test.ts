@@ -11,10 +11,10 @@ describe('SocialDapp', function () {
   let deployer : Wallet
 
   before(async function() {
-    user1 = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
-    user2 = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
+    user1 = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
+    user2 = getWallet(LOCAL_RICH_WALLETS[2].privateKey);
 
-    socialMedia = await deployContract("Freelance", [], { wallet: deployer , silent: true });
+    socialMedia = await deployContract("SocialDapp", [], { wallet: deployer , silent: true });
   })
 
   it('should register a user', async function () {
@@ -31,5 +31,27 @@ describe('SocialDapp', function () {
     expect(events.length).to.equal(1);
     
   });
+
+  it('should create a post', async function () {
+    const content = 'This is a test post';
+    await (socialMedia.connect(user1) as Contract).createPost(content);
+    const postsCount = await socialMedia.getPostsCount();
+    expect(postsCount.toString()).to.equal('1');
+
+    const post = await socialMedia.getPost(0);
+    expect(post.author).to.equal(user1.address);
+    expect(post.content).to.equal(content);
+    expect(post.likes.toString()).to.equal('0');
+    expect(post.commentsCount.toString()).to.equal('0');
+
+  });
  
+  it('should like a post', async function () {
+    await (socialMedia.connect(user2) as Contract).registerUser('user2');
+    await (socialMedia.connect(user2) as Contract).likePost(0);
+    const post = await socialMedia.getPost(0);
+    expect(post.likes).to.equal(1);
+    expect(post.author).to.equal(user1.address);
+  
+  });
 });
