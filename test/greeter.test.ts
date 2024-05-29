@@ -54,4 +54,25 @@ describe('SocialDapp', function () {
     expect(post.author).to.equal(user1.address);
   
   });
+
+  it('should add a comment to a post', async function () {
+    const content = 'This is a test post';
+    const commentContent = 'This is a test comment';
+
+    await (socialMedia.connect(user2) as Contract).addComment(0, commentContent);
+
+    const comment = await socialMedia.getComment(0, 0);
+    expect(comment.commenter).to.equal(user2.address);
+    expect(comment.content).to.equal(commentContent);
+
+    const post = await socialMedia.getPost(0);
+    expect(post.commentsCount).to.equal(1);
+
+    const events = await socialMedia.queryFilter('CommentAdded');
+    console.log(events)
+    // expect(events.length).to.equal(1);
+    // expect(events[0].args.commenter).to.equal(user2.address);
+    // expect(events[0].args.postId).to.equal(0);
+    // expect(events[0].args.content).to.equal(commentContent);
+  });
 });
