@@ -7,7 +7,7 @@ import { getEthersProvider } from './ethers';
 import { Noto_Sans_Tamil_Supplement } from 'next/font/google';
 const CONTRACT_ABI = require('../variables/abi.json')
 const CONTRACT_ADDRESS = require('../variables/address.json')
-const private_key = process.env.PRIVATE_KEY
+const private_key = process.env.NEXT_PUBLIC_PRIVATE_KEY
 
 
 const ContractContext = createContext();
