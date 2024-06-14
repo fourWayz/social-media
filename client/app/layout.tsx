@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Inter } from "next/font/google";
 import { ContractProvider } from "./lib/ContractContext";
-// import "./globals.css";
+import "./styles.css";
 
 const inter = Inter({ subsets: ["latin"] });
 

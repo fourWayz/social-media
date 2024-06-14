@@ -1,35 +1,38 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import { useContract } from '../lib/ContractContext';
-import { ethers } from 'ethers';
-import { Provider, Wallet } from 'zksync-ethers';
+"use client"
+
+import React, { useState, useEffect } from "react";
+import { useContract } from "../lib/ContractContext";
+import { ethers } from "ethers";
+import { utils } from "zksync-ethers";
+import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner } from "react-bootstrap";
+import { FaThumbsUp, FaCommentDots } from "react-icons/fa";
+import Particles from "react-tsparticles";
+import { motion } from "framer-motion";
 
 function SocialMediaComponent() {
-  const { contract } = useContract();
+  const { contract, wallet } = useContract();
   const [username, setUsername] = useState('');
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [posts, setPosts] = useState([]);
-  const [wallet, setWallet] = useState(null);
   const [registeredUser, setRegisteredUser] = useState(null);
-  const [commentText, setCommentText] = useState(''); // State for comment text
-  
-  const zkSyncProvider = new Provider('https://sepolia.era.zksync.dev');
-  const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
-  const paymasterAddress = require('../variables/paymasterAddress.json'); // Paymaster contract address
-  const private_key = process.env.NEXT_PUBLIC_PRIVATE_KEY
+  const [commentText, setCommentText] = useState({});
+
+  const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
+  const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+    type: "General",
+    innerInput: new Uint8Array(),
+  });
 
   useEffect(() => {
     connectToWallet();
   }, []);
 
-  // fetch registered user onMount
   useEffect(() => {
     fetchRegisteredUser();
   }, [wallet]);
 
-  // fetch post onMount
   useEffect(() => {
     if (contract) {
       fetchPosts();
@@ -39,10 +42,8 @@ function SocialMediaComponent() {
   const connectToWallet = async function () {
     try {
       if (window.ethereum) {
-        await ethProvider.send('eth_requestAccounts', []);
-        const signer = ethProvider.getSigner();
-        const zkSyncWallet = new Wallet(private_key, zkSyncProvider, ethProvider);
-        setWallet(zkSyncWallet);
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
         setIsLoading(false);
       } else {
         throw new Error('Wallet connection not available.');
@@ -52,7 +53,7 @@ function SocialMediaComponent() {
     }
   };
 
-  const fetchPosts = async function() {
+  const fetchPosts = async function () {
     try {
       await getPosts();
     } catch (error) {
@@ -61,7 +62,7 @@ function SocialMediaComponent() {
     }
   };
 
-  const fetchRegisteredUser = async function() {
+  const fetchRegisteredUser = async function () {
     try {
       if (wallet) {
         const address = await wallet.getAddress();
@@ -78,16 +79,7 @@ function SocialMediaComponent() {
   const registerUser = async () => {
     try {
       setMessage('Registering, please wait!');
-      const tx = await wallet.sendTransaction({
-        to: contract.address,
-        data: contract.interface.encodeFunctionData('registerUser', [username]),
-        customData: {
-          paymasterParams: {
-            paymaster: paymasterAddress,
-            paymasterInput: '0x'
-          }
-        }
-      });
+      const tx = await contract.registerUser(username);
       await tx.wait();
       setMessage('User registered successfully.');
       setUsername('');
@@ -101,42 +93,37 @@ function SocialMediaComponent() {
   const createPost = async () => {
     try {
       setMessage('Creating post, please wait!');
-      const tx = await wallet.sendTransaction({
-        to: contract.address,
-        data: contract.interface.encodeFunctionData('createPost', [content]),
-        customData: {
-          paymasterParams: {
-            paymaster: paymasterAddress,
-            paymasterInput: '0x'
-          }
-        }
-      });
+      const tx = await contract.createPost(content);
       await tx.wait();
-      setMessage('Post created successfully.');
-      setContent('');
-      getPosts();
+      if (tx.hash) {
+        setMessage('Post created successfully!');
+        setTimeout(() => {
+          setMessage('');
+          setContent('');
+        }, 3000);
+        getPosts();
+      } else {
+        setMessage('Error creating post');
+        setTimeout(() => {
+          setMessage('');
+        }, 2000);
+      }
     } catch (error) {
-      console.error(error);
-      setMessage(error.message);
+      console.log(error);
     }
   };
 
   const likePost = async (postId) => {
     try {
       setMessage('Liking post, please wait!');
-      const tx = await wallet.sendTransaction({
-        to: contract.address,
-        data: contract.interface.encodeFunctionData('likePost', [postId]),
-        customData: {
-          paymasterParams: {
-            paymaster: paymasterAddress,
-            paymasterInput: '0x'
-          }
-        }
-      });
+      const tx = await contract.likePost(postId);
       await tx.wait();
       setMessage('Post liked successfully.');
-      await getPosts(); // Refresh posts after liking
+      await getPosts();
+      setTimeout(() => {
+        setMessage('');
+        setContent('');
+      }, 3000);
     } catch (error) {
       console.error(error);
       setMessage(error.message);
@@ -146,20 +133,15 @@ function SocialMediaComponent() {
   const addComment = async (postId, comment) => {
     try {
       setMessage('Adding comment, please wait!');
-      const tx = await wallet.sendTransaction({
-        to: contract.address,
-        data: contract.interface.encodeFunctionData('addComment', [postId, comment]),
-        customData: {
-          paymasterParams: {
-            paymaster: paymasterAddress,
-            paymasterInput: '0x'
-          }
-        }
-      });
+      const tx = await contract.connect(wallet).addComment(postId, comment);
       await tx.wait();
       setMessage('Comment added successfully.');
       getPosts();
-      setCommentText('');
+
+      setTimeout(() => {
+        setMessage('');
+        setContent('');
+      }, 3000);
     } catch (error) {
       console.error(error);
       setMessage(error.message);
@@ -187,97 +169,219 @@ function SocialMediaComponent() {
     }
   };
 
+  const handleCommentChange = (postId, text) => {
+    setCommentText(prevState => ({ ...prevState, [postId]: text }));
+  };
+
+  const handleAddComment = (postId) => {
+    const comment = commentText[postId];
+    addComment(postId, comment);
+    setCommentText(prevState => ({ ...prevState, [postId]: '' }));
+  };
+
+  // Particle configuration
+  const particlesOptions = {
+    background: {
+      color: {
+        value: "#ffffff",
+      },
+    },
+    fpsLimit: 60,
+    interactivity: {
+      detectsOn: "canvas",
+      events: {
+        onClick: {
+          enable: true,
+          mode: "push",
+        },
+        onHover: {
+          enable: true,
+          mode: "repulse",
+        },
+        resize: true,
+      },
+      modes: {
+        bubble: {
+          distance: 400,
+          duration: 2,
+          opacity: 0.8,
+          size: 40,
+        },
+        push: {
+          quantity: 4,
+        },
+        repulse: {
+          distance: 200,
+          duration: 0.4,
+        },
+      },
+    },
+    particles: {
+      color: {
+        value: "#ff0000",
+      },
+      links: {
+        color: "#ffffff",
+        distance: 150,
+        enable: true,
+        opacity: 0.5,
+        width: 1,
+      },
+      collisions: {
+        enable: true,
+      },
+      move: {
+        direction: "none",
+        enable: true,
+        outMode: "bounce",
+        random: false,
+        speed: 6,
+        straight: false,
+      },
+      number: {
+        density: {
+          enable: true,
+          value_area: 800,
+        },
+        value: 80,
+      },
+      opacity: {
+        value: 0.5,
+      },
+      shape: {
+        type: "circle",
+      },
+      size: {
+        random: true,
+        value: 5,
+      },
+    },
+    detectRetina: true,
+  };
+
   return (
-    <div className="container mt-5">
-      {/* navbar section */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <div className="container-fluid">
-          <a className="navbar-brand" href="#">Social Media</a>
-          <div className="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-              {registeredUser && (
-                <li className="nav-item">
-                  <button disabled className="btn btn-warning"> {registeredUser.userAddress.slice(0, 6)}...</button>
-                </li>
-              )}
-            </ul>
-          </div>
-        </div>
-      </nav>
+    <div>
+      <Particles
+        id="tsparticles"
+        options={particlesOptions}
+        style={{ position: "absolute", zIndex: -1, width: "100%", height: "100%" }}
+      />
+      <Container className="mt-5">
+        <Navbar bg="light" expand="lg">
+          <Container>
+            <Navbar.Brand href="#">Social Media</Navbar.Brand>
+            <Navbar.Toggle aria-controls="basic-navbar-nav" />
+            <Navbar.Collapse id="basic-navbar-nav">
+              <Nav className="me-auto">
+                {registeredUser && (
+                  <Nav.Item>
+                    <Button variant="warning" disabled>
+                      {registeredUser.userAddress.slice(0, 6)}...
+                    </Button>
+                  </Nav.Item>
+                )}
+              </Nav>
+            </Navbar.Collapse>
+          </Container>
+        </Navbar>
 
-      {/* registration section  */}
-      {!registeredUser && (
-        <div className="row mt-3">
-          <div className="col-md-6">
-            <div className="card">
-              <div className="card-body">
-                <h5 className="card-title">Create Account</h5>
-                <div className="mb-3">
-                  <input type="text" className="form-control" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-                </div>
-                <button className="btn btn-primary" onClick={registerUser} disabled={isLoading}>Register</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        {!registeredUser && (
+          <Row className="mt-3">
+            <Col md={6}>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+                <Card>
+                  <Card.Body>
+                    <Card.Title>Create Account</Card.Title>
+                    <Form.Control
+                      type="text"
+                      placeholder="Username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                    <Button variant="primary" onClick={registerUser} disabled={isLoading} className="mt-2">
+                      {isLoading ? <Spinner animation="border" size="sm" /> : 'Register'}
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+        )}
 
-      {/* create post section */}
-      {registeredUser && (
-        <div className="row mt-3">
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-body">
-              <h5 className="card-title">Create Post</h5>
-              <div className="mb-3">
-                <textarea className="form-control" rows="3" placeholder="Content" value={content} onChange={(e) => setContent(e.target.value)}></textarea>
-              </div>
-              <button className="btn btn-primary" onClick={createPost} disabled={isLoading}>Create Post</button>
-            </div>
-          </div>
-        </div>
-        </div>
-      )}
+        {registeredUser && (
+          <Row className="mt-3">
+            <Col md={6}>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+                <Card>
+                  <Card.Body>
+                    <Card.Title>Create Post</Card.Title>
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      placeholder="Content"
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                    />
+                    <Button variant="primary" onClick={createPost} disabled={isLoading} className="mt-2">
+                      {isLoading ? <Spinner animation="border" size="sm" /> : 'Create Post'}
+                    </Button>
+                  </Card.Body>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+        )}
 
-      {/* post section */}
-      <div className="mt-3">
-        {message && <div className="alert alert-info" role="alert">{message}</div>}
-        <h3>Posts</h3>
-        <div className="row">
-          {posts.map((post, index) => (
-            <div className="col-md-6 mb-3" key={index}>
-              <div className="card shadow p-2">
-                <div className="card-body">
-                  <h6 className="card-title" style={{'color':'darkgrey'}}>Author : {post.author.toString()}</h6>
-                  <p className="card-text" style={{'color':'darkgrey'}}>{post.content}</p>
-                  <p className="card-text" style={{'color':'darkgrey'}}>Likes: {post.likes.toString()}</p>
-                  {registeredUser && (
-                    <>
-                      <button className="btn btn-primary m-2" onClick={() => likePost(index)}>Like</button>
-                      <input type="text" className="form-control m-2" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} />
-                      <button className="btn btn-secondary" onClick={() => addComment(index, commentText)}>Comment</button>
-                    </>
-                  )}
-                  <div className="mt-3">
-                    <h5>Comments</h5>
-                    {post.comments.map((comment, commentIndex) => (
-                      <div key={commentIndex}>
-                        <p className='text-info'>{comment.content} <br />
-                        <span className='text-primary'>{`${comment.commenter.slice(0,6)}...${comment.commenter.slice(comment.commenter.length -4)}`}</span>
-                        </p>
+        <div className="mt-3">
+          {message && <Alert variant="info">{message}</Alert>}
+          <h3>Posts</h3>
+          <Row>
+            {posts.map((post, index) => (
+              <Col md={6} key={index}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+                  <Card className="shadow p-2 mb-3">
+                    <Card.Body>
+                      <Card.Title style={{ color: 'darkgrey' }}>Author: {post[0]}</Card.Title>
+                      <Card.Text style={{ color: 'darkgrey' }}>{post[1]}</Card.Text>
+                      <Card.Text style={{ color: 'darkgrey' }}>Likes: {post[3]?.toString()}</Card.Text>
+
+                      {registeredUser && (
+                        <>
+                          <Button variant="primary" onClick={() => likePost(index)} className="m-2">
+                            <FaThumbsUp /> Like
+                          </Button>
+                          <Form.Control
+                            type="text"
+                            placeholder="Add a comment..."
+                            value={commentText[index] || ''}
+                            onChange={(e) => handleCommentChange(index, e.target.value)}
+                            className="m-2"
+                          />
+                          <Button variant="secondary" onClick={() => handleAddComment(index)}>
+                            <FaCommentDots /> Comment
+                          </Button>
+                        </>
+                      )}
+
+                      <div className="mt-3">
+                        <h5>Comments</h5>
+                        {post.comments.map((comment, commentIndex) => (
+                          <p key={commentIndex} className="text-info">
+                            {comment.content} <br />
+                            <span className="text-primary">
+                              {`${comment.commenter.slice(0, 6)}...${comment.commenter.slice(comment.commenter.length - 4)}`}
+                            </span>
+                          </p>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                    </Card.Body>
+                  </Card>
+                </motion.div>
+              </Col>
+            ))}
+          </Row>
         </div>
-      </div>
-
-      <div className="mt-5">
-        {/* <img src={logo} alt="Logo" className="img-fluid" /> */}
-      </div>
+      </Container>
     </div>
   );
 }

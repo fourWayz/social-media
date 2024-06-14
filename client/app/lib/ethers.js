@@ -5,7 +5,7 @@ export function getEthersProvider() {
  
   if (typeof window !== 'undefined') {
     // Use MetaMask's injected provider
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const provider = new ethers.BrowserProvider(window.ethereum);
     return provider
   } else {
     // Fall back to a JSON-RPC provider
