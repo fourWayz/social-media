@@ -1,8 +1,8 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from 'react';
 import { useContract } from '../lib/ContractContext';
 import { ethers } from 'ethers';
-// import logo from '../assets/logo.png';
+import { Provider, Wallet } from 'zksync-ethers';
 
 function SocialMediaComponent() {
   const { contract } = useContract();
@@ -14,7 +14,11 @@ function SocialMediaComponent() {
   const [wallet, setWallet] = useState(null);
   const [registeredUser, setRegisteredUser] = useState(null);
   const [commentText, setCommentText] = useState(''); // State for comment text
-
+  
+  const zkSyncProvider = new Provider('https://sepolia.era.zksync.dev');
+  const ethProvider = new ethers.providers.Web3Provider(window.ethereum);
+  const paymasterAddress = require('../variables/paymasterAddress.json'); // Paymaster contract address
+  const private_key = process.env.NEXT_PUBLIC_PRIVATE_KEY
 
   useEffect(() => {
     connectToWallet();
@@ -32,13 +36,13 @@ function SocialMediaComponent() {
     }
   }, [contract]);
 
-  // wallet connect functionality
   const connectToWallet = async function () {
     try {
       if (window.ethereum) {
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.send('eth_requestAccounts', []);
-        setWallet(provider.getSigner());
+        await ethProvider.send('eth_requestAccounts', []);
+        const signer = ethProvider.getSigner();
+        const zkSyncWallet = new Wallet(private_key, zkSyncProvider, ethProvider);
+        setWallet(zkSyncWallet);
         setIsLoading(false);
       } else {
         throw new Error('Wallet connection not available.');
@@ -46,8 +50,8 @@ function SocialMediaComponent() {
     } catch (error) {
       console.error(error);
     }
-  }
-  // fetch posts function
+  };
+
   const fetchPosts = async function() {
     try {
       await getPosts();
@@ -55,13 +59,11 @@ function SocialMediaComponent() {
       console.error(error);
       setMessage(error.message);
     }
-  }
+  };
 
-  // register user function
   const fetchRegisteredUser = async function() {
     try {
       if (wallet) {
-
         const address = await wallet.getAddress();
         const user = await contract.getUserByAddress(address);
         if (user) {
@@ -71,45 +73,68 @@ function SocialMediaComponent() {
     } catch (error) {
       console.error(error);
     }
-  }
+  };
 
-  // user registration functionality
   const registerUser = async () => {
     try {
-      setMessage('Registering, please wait!')
-      const address = await wallet.getAddress();
-      const tx = await contract.registerUser(username, { from: address });
-      await tx.wait()
+      setMessage('Registering, please wait!');
+      const tx = await wallet.sendTransaction({
+        to: contract.address,
+        data: contract.interface.encodeFunctionData('registerUser', [username]),
+        customData: {
+          paymasterParams: {
+            paymaster: paymasterAddress,
+            paymasterInput: '0x'
+          }
+        }
+      });
+      await tx.wait();
       setMessage('User registered successfully.');
       setUsername('');
-      fetchRegisteredUser()
+      fetchRegisteredUser();
     } catch (error) {
       console.error(error);
       setMessage(error.message);
     }
   };
 
-  // creating post function
   const createPost = async () => {
     try {
-      setMessage('Creating post, please wait!')
-      const tx = await contract.connect(wallet).createPost(content);
-      await tx.wait()
+      setMessage('Creating post, please wait!');
+      const tx = await wallet.sendTransaction({
+        to: contract.address,
+        data: contract.interface.encodeFunctionData('createPost', [content]),
+        customData: {
+          paymasterParams: {
+            paymaster: paymasterAddress,
+            paymasterInput: '0x'
+          }
+        }
+      });
+      await tx.wait();
       setMessage('Post created successfully.');
       setContent('');
-      getPosts()
+      getPosts();
     } catch (error) {
       console.error(error);
       setMessage(error.message);
     }
   };
 
-  // liking post function
   const likePost = async (postId) => {
     try {
-      setMessage('Liking post, please wait!')
-      const tx = await contract.connect(wallet).likePost(postId);
-      await tx.wait()
+      setMessage('Liking post, please wait!');
+      const tx = await wallet.sendTransaction({
+        to: contract.address,
+        data: contract.interface.encodeFunctionData('likePost', [postId]),
+        customData: {
+          paymasterParams: {
+            paymaster: paymasterAddress,
+            paymasterInput: '0x'
+          }
+        }
+      });
+      await tx.wait();
       setMessage('Post liked successfully.');
       await getPosts(); // Refresh posts after liking
     } catch (error) {
@@ -118,25 +143,32 @@ function SocialMediaComponent() {
     }
   };
 
-  // adding comment function
   const addComment = async (postId, comment) => {
     try {
-      setMessage('Adding comment, please wait!')
-      const tx = await contract.connect(wallet).addComment(postId, comment);
-      await tx.wait()
+      setMessage('Adding comment, please wait!');
+      const tx = await wallet.sendTransaction({
+        to: contract.address,
+        data: contract.interface.encodeFunctionData('addComment', [postId, comment]),
+        customData: {
+          paymasterParams: {
+            paymaster: paymasterAddress,
+            paymasterInput: '0x'
+          }
+        }
+      });
+      await tx.wait();
       setMessage('Comment added successfully.');
       getPosts();
-      setCommentText('')
+      setCommentText('');
     } catch (error) {
       console.error(error);
       setMessage(error.message);
     }
   };
 
-  // getting posts function
   const getPosts = async () => {
     try {
-      const count = await contract.getPostsCount(); 
+      const count = await contract.getPostsCount();
       const fetchedPosts = [];
       for (let i = 0; i < count; i++) {
         const post = await contract.getPost(i);
@@ -206,8 +238,7 @@ function SocialMediaComponent() {
         </div>
         </div>
       )}
-     
-    
+
       {/* post section */}
       <div className="mt-3">
         {message && <div className="alert alert-info" role="alert">{message}</div>}
@@ -215,22 +246,18 @@ function SocialMediaComponent() {
         <div className="row">
           {posts.map((post, index) => (
             <div className="col-md-6 mb-3" key={index}>
-              <div className="card shadow p-2 ">
+              <div className="card shadow p-2">
                 <div className="card-body">
                   <h6 className="card-title" style={{'color':'darkgrey'}}>Author : {post.author.toString()}</h6>
                   <p className="card-text" style={{'color':'darkgrey'}}>{post.content}</p>
                   <p className="card-text" style={{'color':'darkgrey'}}>Likes: {post.likes.toString()}</p>
-                  {/* Like button */}
                   {registeredUser && (
                     <>
-                     <button  className="btn btn-primary m-2" onClick={() => likePost(index)}>Like</button>
-                      {/* Comment input and button */}
+                      <button className="btn btn-primary m-2" onClick={() => likePost(index)}>Like</button>
                       <input type="text" className="form-control m-2" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} />
                       <button className="btn btn-secondary" onClick={() => addComment(index, commentText)}>Comment</button>
                     </>
-                 
                   )}
-                 {/* Comments */}
                   <div className="mt-3">
                     <h5>Comments</h5>
                     {post.comments.map((comment, commentIndex) => (
@@ -251,7 +278,6 @@ function SocialMediaComponent() {
       <div className="mt-5">
         {/* <img src={logo} alt="Logo" className="img-fluid" /> */}
       </div>
-      
     </div>
   );
 }
