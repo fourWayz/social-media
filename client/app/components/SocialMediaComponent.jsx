@@ -30,7 +30,7 @@ function SocialMediaComponent() {
   const { login } = useLogin({
     onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
       console.log(linkedAccount);
-      const username = linkedAccount.username;
+      const username = linkedAccount?.username;
       if (username) {
         localStorage.setItem('githubUsername', username);
         setGithubUsername(username);
