@@ -28,7 +28,7 @@ function SocialMediaComponent() {
 
   const {login} = useLogin({
     onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
-      console.log(user);
+      console.log(linkedAccount);
       // Any logic you'd like to execute if the user is/becomes authenticated while this
       // component is mounted
     },
