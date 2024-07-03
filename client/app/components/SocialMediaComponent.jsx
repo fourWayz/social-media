@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useContract } from "../lib/ContractContext";
 import { ethers } from "ethers";
 import { utils } from "zksync-ethers";
-import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner } from "react-bootstrap";
+import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner, Modal } from "react-bootstrap";
 import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
@@ -19,7 +19,8 @@ function SocialMediaComponent() {
   const [posts, setPosts] = useState([]);
   const [registeredUser, setRegisteredUser] = useState(null);
   const [commentText, setCommentText] = useState({});
-  const [githubUsername, setGithubUsername] = useState('');
+  const [socialAccount, setSocialAccount] = useState({ username: '', type: '' });
+  const [showModal, setShowModal] = useState(false);
 
   const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
@@ -27,24 +28,26 @@ function SocialMediaComponent() {
     innerInput: new Uint8Array(),
   });
 
+  const handleLoginComplete = (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
+    console.log(linkedAccount);
+    const username = linkedAccount?.username || linkedAccount?.name;
+    if (username) {
+      localStorage.setItem('socialAccount', JSON.stringify({ username, type: linkedAccount.type }));
+      setSocialAccount({ username, type: linkedAccount.type });
+    }
+  };
+
   const { login } = useLogin({
-    onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
-      console.log(linkedAccount);
-      const username = linkedAccount?.username;
-      if (username) {
-        localStorage.setItem('githubUsername', username);
-        setGithubUsername(username);
-      }
-    },
+    onComplete: handleLoginComplete,
     onError: (error) => {
       console.log(error);
     },
   });
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem('githubUsername');
-    if (storedUsername) {
-      setGithubUsername(storedUsername);
+    const storedSocialAccount = JSON.parse(localStorage.getItem('socialAccount'));
+    if (storedSocialAccount) {
+      setSocialAccount(storedSocialAccount);
     }
     connectToWallet();
   }, []);
@@ -199,7 +202,11 @@ function SocialMediaComponent() {
     setCommentText(prevState => ({ ...prevState, [postId]: '' }));
   };
 
-  // Particle configuration
+  const handleSocialLogin = (type) => {
+    login(type);
+    setShowModal(false);
+  };
+
   const particlesOptions = {
     background: {
       color: {
@@ -296,7 +303,7 @@ function SocialMediaComponent() {
                 {registeredUser && (
                   <Nav.Item>
                     <Button variant="warning" disabled>
-                      {registeredUser.userAddress.slice(0, 6)}... {githubUsername && `(${githubUsername})`}
+                      {registeredUser.userAddress.slice(0, 6)}... {socialAccount.username && `(${socialAccount.username})`}
                     </Button>
                   </Nav.Item>
                 )}
@@ -311,7 +318,7 @@ function SocialMediaComponent() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
                 <Card>
                   <Card.Body>
-                    <Card.Title>Create Account</Card.Title>
+                    <Card.Title>Register</Card.Title>
                     <Form.Control
                       type="text"
                       placeholder="Username"
@@ -330,14 +337,14 @@ function SocialMediaComponent() {
 
         {registeredUser && (
           <>
-            {!githubUsername && (
+            {!socialAccount.username && (
               <Row className="mt-3">
                 <Col md={6}>
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
                     <Card>
                       <Card.Body>
                         <Card.Title>Link Social Account</Card.Title>
-                        <Button variant="primary" onClick={login} className="mt-2">
+                        <Button variant="primary" onClick={() => setShowModal(true)} className="mt-2">
                           <FaLink /> Link Social
                         </Button>
                       </Card.Body>
@@ -420,6 +427,20 @@ function SocialMediaComponent() {
             ))}
           </Row>
         </div>
+
+        <Modal show={showModal} onHide={() => setShowModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Select Social Account</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Button variant="primary" onClick={() => handleSocialLogin('github')} className="mb-2">
+              <FaLink /> Link GitHub
+            </Button>
+            <Button variant="secondary" onClick={() => handleSocialLogin('google')}>
+              <FaLink /> Link Google
+            </Button>
+          </Modal.Body>
+        </Modal>
       </Container>
     </div>
   );
