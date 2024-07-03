@@ -8,7 +8,7 @@ import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner } 
 import { FaThumbsUp, FaCommentDots } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
-import {PrivyProvider, usePrivy,useLogin} from '@privy-io/react-auth';
+import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
 
 function SocialMediaComponent() {
   const { contract, wallet } = useContract();
@@ -19,6 +19,7 @@ function SocialMediaComponent() {
   const [posts, setPosts] = useState([]);
   const [registeredUser, setRegisteredUser] = useState(null);
   const [commentText, setCommentText] = useState({});
+  const [githubUsername, setGithubUsername] = useState('');
 
   const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
@@ -26,19 +27,25 @@ function SocialMediaComponent() {
     innerInput: new Uint8Array(),
   });
 
-  const {login} = useLogin({
+  const { login } = useLogin({
     onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
       console.log(linkedAccount);
-      // Any logic you'd like to execute if the user is/becomes authenticated while this
-      // component is mounted
+      const username = linkedAccount.username;
+      if (username) {
+        localStorage.setItem('githubUsername', username);
+        setGithubUsername(username);
+      }
     },
     onError: (error) => {
       console.log(error);
-      // Any logic you'd like to execute after a user exits the login flow or there is an error
     },
   });
 
   useEffect(() => {
+    const storedUsername = localStorage.getItem('githubUsername');
+    if (storedUsername) {
+      setGithubUsername(storedUsername);
+    }
     connectToWallet();
   }, []);
 
@@ -289,7 +296,7 @@ function SocialMediaComponent() {
                 {registeredUser && (
                   <Nav.Item>
                     <Button variant="warning" disabled>
-                      {registeredUser.userAddress.slice(0, 6)}...
+                      {registeredUser.userAddress.slice(0, 6)}... {githubUsername && `(${githubUsername})`}
                     </Button>
                   </Nav.Item>
                 )}
