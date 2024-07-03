@@ -8,6 +8,7 @@ import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner } 
 import { FaThumbsUp, FaCommentDots } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
+import {PrivyProvider, usePrivy,useLogin} from '@privy-io/react-auth';
 
 function SocialMediaComponent() {
   const { contract, wallet } = useContract();
@@ -23,6 +24,18 @@ function SocialMediaComponent() {
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
     type: "General",
     innerInput: new Uint8Array(),
+  });
+
+  const {login} = useLogin({
+    onComplete: (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
+      console.log(user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount);
+      // Any logic you'd like to execute if the user is/becomes authenticated while this
+      // component is mounted
+    },
+    onError: (error) => {
+      console.log(error);
+      // Any logic you'd like to execute after a user exits the login flow or there is an error
+    },
   });
 
   useEffect(() => {
@@ -315,6 +328,9 @@ function SocialMediaComponent() {
                 <Card>
                   <Card.Body>
                     <Card.Title>Create Post</Card.Title>
+                    <Button variant="primary" onClick={login} className="mt-2">
+                      Connect Social
+                    </Button>
                     <Form.Control
                       as="textarea"
                       rows={3}

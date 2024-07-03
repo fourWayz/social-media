@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Inter } from "next/font/google";
 import { ContractProvider } from "./lib/ContractContext";
 import "./styles.css";
+import Providers from "./providers/privyProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,10 +19,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-       <body className={inter.className}>
-          <ContractProvider>
-              {children}
-          </ContractProvider>
+      <body className={inter.className}>
+          <Providers>
+            <ContractProvider>
+                  {children}
+            </ContractProvider>
+          </Providers>
       </body>
     </html>
   );
