@@ -5,7 +5,7 @@ import { useContract } from "../lib/ContractContext";
 import { ethers } from "ethers";
 import { utils } from "zksync-ethers";
 import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner } from "react-bootstrap";
-import { FaThumbsUp, FaCommentDots } from "react-icons/fa";
+import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
 import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
@@ -329,30 +329,46 @@ function SocialMediaComponent() {
         )}
 
         {registeredUser && (
-          <Row className="mt-3">
-            <Col md={6}>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                <Card>
-                  <Card.Body>
-                    <Card.Title>Create Post</Card.Title>
-                    <Button variant="primary" onClick={login} className="mt-2">
-                      Connect Social
-                    </Button>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      placeholder="Content"
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                    />
-                    <Button variant="primary" onClick={createPost} disabled={isLoading} className="mt-2">
-                      {isLoading ? <Spinner animation="border" size="sm" /> : 'Create Post'}
-                    </Button>
-                  </Card.Body>
-                </Card>
-              </motion.div>
-            </Col>
-          </Row>
+          <>
+            {!githubUsername && (
+              <Row className="mt-3">
+                <Col md={6}>
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+                    <Card>
+                      <Card.Body>
+                        <Card.Title>Link Social Account</Card.Title>
+                        <Button variant="primary" onClick={login} className="mt-2">
+                          <FaLink /> Link Social
+                        </Button>
+                      </Card.Body>
+                    </Card>
+                  </motion.div>
+                </Col>
+              </Row>
+            )}
+
+            <Row className="mt-3">
+              <Col md={6}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
+                  <Card>
+                    <Card.Body>
+                      <Card.Title>Create Post</Card.Title>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        placeholder="Content"
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                      />
+                      <Button variant="primary" onClick={createPost} disabled={isLoading} className="mt-2">
+                        {isLoading ? <Spinner animation="border" size="sm" /> : 'Create Post'}
+                      </Button>
+                    </Card.Body>
+                  </Card>
+                </motion.div>
+              </Col>
+            </Row>
+          </>
         )}
 
         <div className="mt-3">
