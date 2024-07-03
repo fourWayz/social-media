@@ -433,10 +433,10 @@ function SocialMediaComponent() {
             <Modal.Title>Select Social Account</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <Button variant="primary" onClick={() => handleSocialLogin('github')} className="mb-2">
+            <Button variant="primary" onClick={() => handleSocialLogin('github')} className="m-2">
               <FaLink /> Link GitHub
             </Button>
-            <Button variant="secondary" onClick={() => handleSocialLogin('google')}>
+            <Button className="m-2" variant="secondary" onClick={() => handleSocialLogin('google')}>
               <FaLink /> Link Google
             </Button>
           </Modal.Body>
