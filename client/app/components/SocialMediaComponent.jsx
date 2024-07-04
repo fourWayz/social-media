@@ -293,10 +293,10 @@ function SocialMediaComponent() {
         options={particlesOptions}
         style={{ position: "absolute", zIndex: -1, width: "100%", height: "100%" }}
       />
-      <Container className="mt-5">
-        <Navbar bg="light" expand="lg">
+      <Container className="mt-5" style={{"backgroundColor":"#36394"}}>
+        <Navbar bg="dark" expand="lg">
           <Container>
-            <Navbar.Brand href="#">Social Media</Navbar.Brand>
+            <Navbar.Brand href="#" className="text-white">Social Media</Navbar.Brand>
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               <Nav className="me-auto">
@@ -316,9 +316,9 @@ function SocialMediaComponent() {
           <Row className="mt-3">
             <Col md={6}>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                <Card>
+                <Card style={{"backgroundColor":"#1C2541"}}>
                   <Card.Body>
-                    <Card.Title>Register</Card.Title>
+                    <Card.Title className="text-white">Register</Card.Title>
                     <Form.Control
                       type="text"
                       placeholder="Username"
@@ -357,15 +357,16 @@ function SocialMediaComponent() {
             <Row className="mt-3">
               <Col md={6}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                  <Card>
+                  <Card style={{"backgroundColor":"#1C2541"}}>
                     <Card.Body>
-                      <Card.Title>Create Post</Card.Title>
-                      <Form.Control
+                      <Card.Title className="text-white">Create Post</Card.Title>
+                      <Form.Control         
                         as="textarea"
                         rows={3}
                         placeholder="Content"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
+                        style={{"backgroundColor":"##0B132B","color":"#c8c8c"}}
                       />
                       <Button variant="primary" onClick={createPost} disabled={isLoading} className="mt-2">
                         {isLoading ? <Spinner animation="border" size="sm" /> : 'Create Post'}
@@ -380,12 +381,12 @@ function SocialMediaComponent() {
 
         <div className="mt-3">
           {message && <Alert variant="info">{message}</Alert>}
-          <h3>Posts</h3>
+          <h3 className="text-white">Posts</h3>
           <Row>
             {posts.map((post, index) => (
               <Col md={6} key={index}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                  <Card className="shadow p-2 mb-3">
+                  <Card className="shadow p-2 mb-3" style={{"backgroundColor":"#1C2541"}}>
                     <Card.Body>
                       <Card.Title style={{ color: 'darkgrey' }}>Author: {post[0]}</Card.Title>
                       <Card.Text style={{ color: 'darkgrey' }}>{post[1]}</Card.Text>
