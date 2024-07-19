@@ -11,9 +11,10 @@ describe('SocialDapp', function () {
   let deployer : Wallet
 
   before(async function() {
+    deployer = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
     user1 = getWallet(LOCAL_RICH_WALLETS[1].privateKey);
     user2 = getWallet(LOCAL_RICH_WALLETS[2].privateKey);
-
+    
     socialMedia = await deployContract("SocialDapp", [], { wallet: deployer , silent: true });
   })
 
