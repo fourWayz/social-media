@@ -2,9 +2,8 @@ import { deployContract, getWallet, getProvider } from "./utils";
 import * as ethers from "ethers";
 
 export default async function () {
-  const SocialDapp = await deployContract("SocialDapp");
-  const SocialDappAddress = await SocialDapp.getAddress();
-  const paymaster = await deployContract("Paymaster", [SocialDappAddress]);
+  await deployContract("SocialDapp");
+  const paymaster = await deployContract("GaslessPaymaster");
 
   const paymasterAddress = await paymaster.getAddress();
 
