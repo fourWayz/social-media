@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
 
 function SocialMediaComponent() {
-  const { contract, wallet } = useContract();
+  const { contract, wallet,zkProvider } = useContract();
   const [username, setUsername] = useState('');
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -52,13 +52,13 @@ function SocialMediaComponent() {
     connectToWallet();
   }, []);
 
-  useEffect(() => {
-    fetchRegisteredUser();
-  }, [wallet]);
+  // useEffect(() => {
+    // fetchRegisteredUser();
+  // }, [wallet]);
 
   useEffect(() => {
     if (contract) {
-      fetchPosts();
+      // fetchPosts();
     }
   }, [contract]);
 
@@ -102,8 +102,28 @@ function SocialMediaComponent() {
   const registerUser = async () => {
     try {
       setMessage('Registering, please wait!');
-      const tx = await contract.registerUser(username);
-      await tx.wait();
+
+      // gas limit 
+      const gasLimit = await contract.registerUser.estimateGas(username,{
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams: paymasterParams,
+        },
+      });
+
+      // registration transaction
+      const transaction = await contract.registerUser(username,{
+        maxPriorityFeePerGas: 0n,
+        maxFeePerGas: await zkProvider.getGasPrice(),
+        gasLimit,
+        // Pass the paymaster params as custom data
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams,
+        },
+      });
+
+      await transaction.wait();
       setMessage('User registered successfully.');
       setUsername('');
       fetchRegisteredUser();
@@ -116,9 +136,28 @@ function SocialMediaComponent() {
   const createPost = async () => {
     try {
       setMessage('Creating post, please wait!');
-      const tx = await contract.createPost(content);
-      await tx.wait();
-      if (tx.hash) {
+         // gas limit 
+         const gasLimit = await contract.registerUser.estimateGas(username,{
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams: paymasterParams,
+          },
+        });
+  
+        // registration transaction
+        const transaction = await contract.registerUser(username,{
+          maxPriorityFeePerGas: 0n,
+          maxFeePerGas: await zkProvider.getGasPrice(),
+          gasLimit,
+          // Pass the paymaster params as custom data
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams,
+          },
+        });
+  
+      await transaction.wait();
+      if (transaction.hash) {
         setMessage('Post created successfully!');
         setTimeout(() => {
           setMessage('');
@@ -139,8 +178,26 @@ function SocialMediaComponent() {
   const likePost = async (postId) => {
     try {
       setMessage('Liking post, please wait!');
-      const tx = await contract.likePost(postId);
-      await tx.wait();
+         // gas limit 
+         const gasLimit = await contract.likePost.estimateGas(postId,{
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams: paymasterParams,
+          },
+        });
+  
+        // registration transaction
+        const transaction = await contract.likePost(postId,{
+          maxPriorityFeePerGas: 0n,
+          maxFeePerGas: await zkProvider.getGasPrice(),
+          gasLimit,
+          // Pass the paymaster params as custom data
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams,
+          },
+        });
+      await transaction.wait();
       setMessage('Post liked successfully.');
       await getPosts();
       setTimeout(() => {
@@ -156,8 +213,26 @@ function SocialMediaComponent() {
   const addComment = async (postId, comment) => {
     try {
       setMessage('Adding comment, please wait!');
-      const tx = await contract.connect(wallet).addComment(postId, comment);
-      await tx.wait();
+        // gas limit 
+        const gasLimit = await contract.addComment.estimateGas(postId,comment,{
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams: paymasterParams,
+          },
+        });
+  
+        // registration transaction
+        const transaction = await contract.addComment(postId,comment,{
+          maxPriorityFeePerGas: 0n,
+          maxFeePerGas: await zkProvider.getGasPrice(),
+          gasLimit,
+          // Pass the paymaster params as custom data
+          customData: {
+            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+            paymasterParams,
+          },
+        });
+      await transaction.wait();
       setMessage('Comment added successfully.');
       getPosts();
 
