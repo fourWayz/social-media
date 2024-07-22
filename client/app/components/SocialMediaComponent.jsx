@@ -59,12 +59,13 @@ function SocialMediaComponent() {
           const signer = await provider.getSigner();
           const account = await signer.getAddress()
           setAccount(account)
+          console.log(account)
           const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
           setContract(contract);
           setProvider(zkProvider);
           setIsLoading(false);
           fetchPosts()
-          fetchRegisteredUser
+          fetchRegisteredUser()
         } else {
           throw new Error('Wallet connection not available.');
         }
@@ -74,7 +75,7 @@ function SocialMediaComponent() {
     };
 
     connectToWallet();
-  }, []); 
+  }, [account]); 
 
   useEffect(() => {
     const storedSocialAccount = JSON.parse(localStorage.getItem('socialAccount'));
@@ -131,6 +132,8 @@ function SocialMediaComponent() {
       await transaction.wait();
       setMessage('User registered successfully.');
       setUsername('');
+      fetchRegisteredUser()
+
     } catch (error) {
       console.error(error);
       setMessage(error.message);
