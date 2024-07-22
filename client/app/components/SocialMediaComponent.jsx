@@ -1,18 +1,21 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import { useContract } from "../lib/ContractContext";
 import { ethers } from "ethers";
-import { utils } from "zksync-ethers";
+import { utils, BrowserProvider, Provider,Wallet } from "zksync-ethers";
 import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner, Modal } from "react-bootstrap";
 import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
 import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
 
+const CONTRACT_ABI = require('../variables/abi.json');
+const CONTRACT_ADDRESS = require('../variables/address.json');
+const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
+
 function SocialMediaComponent() {
-  const { contract, wallet,zkProvider } = useContract();
   const [username, setUsername] = useState('');
+  const [account, setAccount] = useState('');
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -21,15 +24,16 @@ function SocialMediaComponent() {
   const [commentText, setCommentText] = useState({});
   const [socialAccount, setSocialAccount] = useState({ username: '', type: '' });
   const [showModal, setShowModal] = useState(false);
+  const [provider, setProvider] = useState(null);
+  const [contract, setContract] = useState(null);
 
-  const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
     type: "General",
     innerInput: new Uint8Array(),
   });
 
+
   const handleLoginComplete = (user, isNewUser, wasAlreadyAuthenticated, loginMethod, linkedAccount) => {
-    console.log(linkedAccount);
     const username = linkedAccount?.username || linkedAccount?.name;
     if (username) {
       localStorage.setItem('socialAccount', JSON.stringify({ username, type: linkedAccount.type }));
@@ -45,38 +49,41 @@ function SocialMediaComponent() {
   });
 
   useEffect(() => {
+    const connectToWallet = async () => {
+      try {
+        if (typeof window !== 'undefined' && window.ethereum) {
+          const provider = new BrowserProvider(window.ethereum);
+          await provider.send('eth_requestAccounts', []);
+
+          const zkProvider = new Provider("https://sepolia.era.zksync.dev");
+          const signer = await provider.getSigner();
+          const account = await signer.getAddress()
+          setAccount(account)
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+          setContract(contract);
+          setProvider(zkProvider);
+          setIsLoading(false);
+          fetchPosts()
+          fetchRegisteredUser
+        } else {
+          throw new Error('Wallet connection not available.');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    connectToWallet();
+  }, []); 
+
+  useEffect(() => {
     const storedSocialAccount = JSON.parse(localStorage.getItem('socialAccount'));
     if (storedSocialAccount) {
       setSocialAccount(storedSocialAccount);
     }
-    connectToWallet();
   }, []);
 
-  // useEffect(() => {
-    // fetchRegisteredUser();
-  // }, [wallet]);
-
-  useEffect(() => {
-    if (contract) {
-      // fetchPosts();
-    }
-  }, [contract]);
-
-  const connectToWallet = async function () {
-    try {
-      if (window.ethereum) {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send('eth_requestAccounts', []);
-        setIsLoading(false);
-      } else {
-        throw new Error('Wallet connection not available.');
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchPosts = async function () {
+  const fetchPosts = async () => {
     try {
       await getPosts();
     } catch (error) {
@@ -85,11 +92,10 @@ function SocialMediaComponent() {
     }
   };
 
-  const fetchRegisteredUser = async function () {
+  const fetchRegisteredUser = async () => {
     try {
-      if (wallet) {
-        const address = await wallet.getAddress();
-        const user = await contract.getUserByAddress(address);
+      if (provider) {
+        const user = await contract.getUserByAddress(account);
         if (user) {
           setRegisteredUser(user);
         }
@@ -101,22 +107,21 @@ function SocialMediaComponent() {
 
   const registerUser = async () => {
     try {
+      if (!contract) return;
       setMessage('Registering, please wait!');
+      const zkProvider = new Provider("https://sepolia.era.zksync.dev");
 
-      // gas limit 
-      const gasLimit = await contract.registerUser.estimateGas(username,{
+      const gasLimit = await contract.registerUser.estimateGas(username, {
         customData: {
           gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
           paymasterParams: paymasterParams,
         },
       });
 
-      // registration transaction
-      const transaction = await contract.registerUser(username,{
+      const transaction = await contract.registerUser(username, {
         maxPriorityFeePerGas: 0n,
         maxFeePerGas: await zkProvider.getGasPrice(),
         gasLimit,
-        // Pass the paymaster params as custom data
         customData: {
           gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
           paymasterParams,
@@ -126,7 +131,6 @@ function SocialMediaComponent() {
       await transaction.wait();
       setMessage('User registered successfully.');
       setUsername('');
-      fetchRegisteredUser();
     } catch (error) {
       console.error(error);
       setMessage(error.message);
@@ -136,26 +140,25 @@ function SocialMediaComponent() {
   const createPost = async () => {
     try {
       setMessage('Creating post, please wait!');
-         // gas limit 
-         const gasLimit = await contract.registerUser.estimateGas(username,{
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams: paymasterParams,
-          },
-        });
-  
-        // registration transaction
-        const transaction = await contract.registerUser(username,{
-          maxPriorityFeePerGas: 0n,
-          maxFeePerGas: await zkProvider.getGasPrice(),
-          gasLimit,
-          // Pass the paymaster params as custom data
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams,
-          },
-        });
-  
+      const zkProvider = new Provider("https://sepolia.era.zksync.dev");
+
+      const gasLimit = await contract.createPost.estimateGas(username, {
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams: paymasterParams,
+        },
+      });
+
+      const transaction = await contract.createPost(username, {
+        maxPriorityFeePerGas: 0n,
+        maxFeePerGas: await zkProvider.getGasPrice(),
+        gasLimit,
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams,
+        },
+      });
+
       await transaction.wait();
       if (transaction.hash) {
         setMessage('Post created successfully!');
@@ -171,32 +174,30 @@ function SocialMediaComponent() {
         }, 2000);
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   };
 
   const likePost = async (postId) => {
     try {
       setMessage('Liking post, please wait!');
-         // gas limit 
-         const gasLimit = await contract.likePost.estimateGas(postId,{
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams: paymasterParams,
-          },
-        });
-  
-        // registration transaction
-        const transaction = await contract.likePost(postId,{
-          maxPriorityFeePerGas: 0n,
-          maxFeePerGas: await zkProvider.getGasPrice(),
-          gasLimit,
-          // Pass the paymaster params as custom data
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams,
-          },
-        });
+      const gasLimit = await contract.likePost.estimateGas(postId, {
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams: paymasterParams,
+        },
+      });
+
+      const transaction = await contract.likePost(postId, {
+        maxPriorityFeePerGas: 0n,
+        maxFeePerGas: await zkProvider.getGasPrice(),
+        gasLimit,
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams,
+        },
+      });
+
       await transaction.wait();
       setMessage('Post liked successfully.');
       await getPosts();
@@ -213,25 +214,23 @@ function SocialMediaComponent() {
   const addComment = async (postId, comment) => {
     try {
       setMessage('Adding comment, please wait!');
-        // gas limit 
-        const gasLimit = await contract.addComment.estimateGas(postId,comment,{
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams: paymasterParams,
-          },
-        });
-  
-        // registration transaction
-        const transaction = await contract.addComment(postId,comment,{
-          maxPriorityFeePerGas: 0n,
-          maxFeePerGas: await zkProvider.getGasPrice(),
-          gasLimit,
-          // Pass the paymaster params as custom data
-          customData: {
-            gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-            paymasterParams,
-          },
-        });
+      const gasLimit = await contract.addComment.estimateGas(postId, comment, {
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams: paymasterParams,
+        },
+      });
+
+      const transaction = await contract.addComment(postId, comment, {
+        maxPriorityFeePerGas: 0n,
+        maxFeePerGas: await zkProvider.getGasPrice(),
+        gasLimit,
+        customData: {
+          gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+          paymasterParams,
+        },
+      });
+
       await transaction.wait();
       setMessage('Comment added successfully.');
       getPosts();
@@ -281,6 +280,7 @@ function SocialMediaComponent() {
     login(type);
     setShowModal(false);
   };
+
 
   const particlesOptions = {
     background: {

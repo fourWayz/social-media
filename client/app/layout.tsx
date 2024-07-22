@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Inter } from "next/font/google";
-import { ContractProvider } from "./lib/ContractContext";
+// import { ContractProvider } from "./lib/ContractContext";
 import "./styles.css";
 import Providers from "./providers/privyProvider";
 
@@ -21,9 +21,9 @@ export default function RootLayout({
     <html lang="en" style={{'backgroundColor':'#0B132B'}}>
       <body className={inter.className}>
           <Providers>
-            <ContractProvider>
+            {/* <ContractProvider> */}
                   {children}
-            </ContractProvider>
+            {/* </ContractProvider> */}
           </Providers>
       </body>
     </html>
