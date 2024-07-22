@@ -94,9 +94,11 @@ function SocialMediaComponent() {
   };
 
   const fetchRegisteredUser = async () => {
+    if (!contract) return;
     try {
-      if (provider) {
+      if (account) {
         const user = await contract.getUserByAddress(account);
+        console.log(user)
         if (user) {
           setRegisteredUser(user);
         }
