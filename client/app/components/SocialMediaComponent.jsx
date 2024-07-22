@@ -142,14 +142,14 @@ function SocialMediaComponent() {
       setMessage('Creating post, please wait!');
       const zkProvider = new Provider("https://sepolia.era.zksync.dev");
 
-      const gasLimit = await contract.createPost.estimateGas(username, {
+      const gasLimit = await contract.createPost.estimateGas(content, {
         customData: {
           gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
           paymasterParams: paymasterParams,
         },
       });
 
-      const transaction = await contract.createPost(username, {
+      const transaction = await contract.createPost(content, {
         maxPriorityFeePerGas: 0n,
         maxFeePerGas: await zkProvider.getGasPrice(),
         gasLimit,
