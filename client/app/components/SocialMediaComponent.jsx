@@ -186,6 +186,8 @@ function SocialMediaComponent() {
   const likePost = async (postId) => {
     try {
       setMessage('Liking post, please wait!');
+      const zkProvider = new Provider("https://sepolia.era.zksync.dev");
+
       const gasLimit = await contract.likePost.estimateGas(postId, {
         customData: {
           gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
@@ -219,6 +221,8 @@ function SocialMediaComponent() {
   const addComment = async (postId, comment) => {
     try {
       setMessage('Adding comment, please wait!');
+      const zkProvider = new Provider("https://sepolia.era.zksync.dev");
+
       const gasLimit = await contract.addComment.estimateGas(postId, comment, {
         customData: {
           gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
@@ -252,6 +256,7 @@ function SocialMediaComponent() {
 
   const getPosts = async () => {
     try {
+      
       const count = await contract.getPostsCount();
       const fetchedPosts = [];
       for (let i = 0; i < count; i++) {
