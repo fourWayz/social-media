@@ -7,7 +7,7 @@ import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner, M
 import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
-import { create } from 'ipfs-http-client';
+// import { create } from 'ipfs-http-client';
 import { useLogin } from '@privy-io/react-auth';
 import {FileUploadFToIPFS} from '../lib/uploadToIpfs'
 import Image from "next/image";
