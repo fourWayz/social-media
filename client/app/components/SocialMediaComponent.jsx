@@ -7,11 +7,18 @@ import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner, M
 import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
-import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
+import { create } from 'ipfs-http-client';
+import { useLogin } from '@privy-io/react-auth';
+import {FileUploadFToIPFS} from '../lib/uploadToIpfs'
+import Image from "next/image";
 
 const CONTRACT_ABI = require('../variables/abi.json');
 const CONTRACT_ADDRESS = require('../variables/address.json');
 const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
+
+
+// const ipfs = create('https://ipfs.infura.io:5001/api/v0');
+// console.log(ipfs,'ipfs')
 
 function SocialMediaComponent() {
   const [username, setUsername] = useState('');
@@ -26,6 +33,8 @@ function SocialMediaComponent() {
   const [showModal, setShowModal] = useState(false);
   const [provider, setProvider] = useState(null);
   const [contract, setContract] = useState(null);
+  const [profileImage, setProfileImage] = useState('');
+  const [profileImageURL, setProfileImageURL] = useState('');
 
   const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
     type: "General",
@@ -41,12 +50,37 @@ function SocialMediaComponent() {
     }
   };
 
+  const uploadImageToIPFS = async (file) => {
+    try {
+      const response = await FileUploadFToIPFS(file)
+      return response.pinataURL
+
+    } catch (error) {
+      console.error('Error uploading file to IPFS: ', error);
+      return null;
+    }
+  };
+
   const { login } = useLogin({
     onComplete: handleLoginComplete,
     onError: (error) => {
       console.log(error);
     },
   });
+
+  useEffect(() => {
+    const storedSocialAccount = JSON.parse(localStorage.getItem('socialAccount'));
+    const storedProfileImageURL = localStorage.getItem('profileImageURL');
+    if (storedSocialAccount) {
+      setSocialAccount(storedSocialAccount);
+    }
+    if (storedProfileImageURL) {
+      setProfileImageURL(storedProfileImageURL);
+    }
+
+  }, []);
+
+
 
   useEffect(() => {
     const connectToWallet = async () => {
@@ -371,6 +405,18 @@ function SocialMediaComponent() {
     detectRetina: true,
   };
 
+  const handleProfileImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const imageUrl = await uploadImageToIPFS(file);
+      if (imageUrl) {
+        console.log(imageUrl)
+        setProfileImageURL(imageUrl);
+        localStorage.setItem('profileImageURL', imageUrl);
+      }
+    }
+  };
+
   return (
     <div>
       <Particles
@@ -378,7 +424,7 @@ function SocialMediaComponent() {
         options={particlesOptions}
         style={{ position: "absolute", zIndex: -1, width: "100%", height: "100%" }}
       />
-      <Container className="mt-5" style={{"backgroundColor":"#36394"}}>
+      <Container className="mt-5" style={{ backgroundColor: "#36394" }}>
         <Navbar bg="dark" expand="lg">
           <Container>
             <Navbar.Brand href="#" className="text-white">Social Media</Navbar.Brand>
@@ -388,6 +434,16 @@ function SocialMediaComponent() {
                 {registeredUser && (
                   <Nav.Item>
                     <Button variant="warning" disabled>
+                      {profileImageURL && (
+                        <Image
+                          src={profileImageURL}
+                          alt="Profile Image"
+                          className="rounded-circle"
+                          width={30}
+                          height={30}
+                        />
+                      )}
+                      {' '}
                       {registeredUser.userAddress.slice(0, 6)}... {socialAccount.username && `(${socialAccount.username})`}
                     </Button>
                   </Nav.Item>
@@ -401,7 +457,7 @@ function SocialMediaComponent() {
           <Row className="mt-3">
             <Col md={6}>
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                <Card style={{"backgroundColor":"#1C2541"}}>
+                <Card style={{ backgroundColor: "#1C2541" }}>
                   <Card.Body>
                     <Card.Title className="text-white">Register</Card.Title>
                     <Form.Control
@@ -431,7 +487,16 @@ function SocialMediaComponent() {
                         <Card.Title>Link Social Account</Card.Title>
                         <Button variant="primary" onClick={() => setShowModal(true)} className="mt-2">
                           <FaLink /> Link Social
-                        </Button>
+                        </Button> <br />
+                        <div className="form-group">
+                          <label htmlFor="profileImageUpload">Upload or Update Profile Image</label>
+                          <input 
+                            type="file" 
+                            className="form-control-file" 
+                            id="profileImageUpload" 
+                            onChange={handleProfileImageUpload} 
+                          />
+                        </div>
                       </Card.Body>
                     </Card>
                   </motion.div>
@@ -442,7 +507,7 @@ function SocialMediaComponent() {
             <Row className="mt-3">
               <Col md={6}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                  <Card style={{"backgroundColor":"#1C2541"}}>
+                  <Card style={{ backgroundColor: "#1C2541" }}>
                     <Card.Body>
                       <Card.Title className="text-white">Create Post</Card.Title>
                       <Form.Control         
@@ -451,7 +516,7 @@ function SocialMediaComponent() {
                         placeholder="Content"
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
-                        style={{"backgroundColor":"##0B132B","color":"#c8c8c"}}
+                        style={{ backgroundColor: "#0B132B", color: "#c8c8c" }}
                       />
                       <Button variant="primary" onClick={createPost} disabled={isLoading} className="mt-2">
                         {isLoading ? <Spinner animation="border" size="sm" /> : 'Create Post'}
@@ -471,7 +536,7 @@ function SocialMediaComponent() {
             {posts.map((post, index) => (
               <Col md={6} key={index}>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1 }}>
-                  <Card className="shadow p-2 mb-3" style={{"backgroundColor":"#1C2541"}}>
+                  <Card className="shadow p-2 mb-3" style={{ backgroundColor: "#1C2541" }}>
                     <Card.Body>
                       <Card.Title style={{ color: 'darkgrey' }}>Author: {post[0]}</Card.Title>
                       <Card.Text style={{ color: 'darkgrey' }}>{post[1]}</Card.Text>
