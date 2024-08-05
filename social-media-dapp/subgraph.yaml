@@ -1,0 +1,38 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: contracts/SocialDapp.sol:SocialDapp
+    network: zksync-era-sepolia
+    source:
+      address: "0xA88bd36AF8b410C587749e954ff77669Eb52C7e6"
+      abi: contracts/SocialDapp.sol:SocialDapp
+      startBlock: 3501856
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - CommentAdded
+        - OwnershipTransferred
+        - PostCreated
+        - PostLiked
+        - UserRegistered
+      abis:
+        - name: contracts/SocialDapp.sol:SocialDapp
+          file: ./abis/contracts/SocialDapp.sol:SocialDapp.json
+      eventHandlers:
+        - event: CommentAdded(indexed address,indexed uint256,string,uint256)
+          handler: handleCommentAdded
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: PostCreated(indexed address,string,uint256)
+          handler: handlePostCreated
+        - event: PostLiked(indexed address,indexed uint256)
+          handler: handlePostLiked
+        - event: UserRegistered(indexed address,string)
+          handler: handleUserRegistered
+      file: ./src/contracts-social-dapp-sol-social-dapp.ts

@@ -7,9 +7,9 @@ import { Container, Navbar, Nav, Card, Button, Form, Alert, Row, Col, Spinner, M
 import { FaThumbsUp, FaCommentDots, FaLink } from "react-icons/fa";
 import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
-// import { create } from 'ipfs-http-client';
-import { useLogin } from '@privy-io/react-auth';
-import {FileUploadFToIPFS} from '../lib/uploadToIpfs'
+import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
+import {FileUploadFToIPFS} from '../lib/uploadToIPFS'
+
 import Image from "next/image";
 
 const CONTRACT_ABI = require('../variables/abi.json');
@@ -47,6 +47,17 @@ function SocialMediaComponent() {
     if (username) {
       localStorage.setItem('socialAccount', JSON.stringify({ username, type: linkedAccount.type }));
       setSocialAccount({ username, type: linkedAccount.type });
+    }  
+  };
+
+  const uploadImageToIPFS = async (file) => {
+    try {
+      const response = await FileUploadFToIPFS(file)
+      return response.pinataURL
+
+    } catch (error) {
+      console.error('Error uploading file to IPFS: ', error);
+      return null;
     }
   };
 
@@ -79,8 +90,6 @@ function SocialMediaComponent() {
     }
 
   }, []);
-
-
 
   useEffect(() => {
     const connectToWallet = async () => {
@@ -417,7 +426,7 @@ function SocialMediaComponent() {
     }
   };
 
-  return (
+ return (
     <div>
       <Particles
         id="tsparticles"
@@ -596,5 +605,5 @@ function SocialMediaComponent() {
     </div>
   );
 }
-
 export default SocialMediaComponent;
+
