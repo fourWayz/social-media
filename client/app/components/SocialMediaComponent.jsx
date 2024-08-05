@@ -9,11 +9,16 @@ import Particles from "react-tsparticles";
 import { motion } from "framer-motion";
 import { PrivyProvider, usePrivy, useLogin } from '@privy-io/react-auth';
 import {FileUploadFToIPFS} from '../lib/uploadToIPFS'
+
 import Image from "next/image";
 
 const CONTRACT_ABI = require('../variables/abi.json');
 const CONTRACT_ADDRESS = require('../variables/address.json');
 const PAYMASTER_ADDRESS = require('../variables/paymasterAddress.json');
+
+
+// const ipfs = create('https://ipfs.infura.io:5001/api/v0');
+// console.log(ipfs,'ipfs')
 
 function SocialMediaComponent() {
   const [username, setUsername] = useState('');
@@ -43,6 +48,17 @@ function SocialMediaComponent() {
       localStorage.setItem('socialAccount', JSON.stringify({ username, type: linkedAccount.type }));
       setSocialAccount({ username, type: linkedAccount.type });
     }  
+  };
+
+  const uploadImageToIPFS = async (file) => {
+    try {
+      const response = await FileUploadFToIPFS(file)
+      return response.pinataURL
+
+    } catch (error) {
+      console.error('Error uploading file to IPFS: ', error);
+      return null;
+    }
   };
 
   const uploadImageToIPFS = async (file) => {
@@ -590,3 +606,4 @@ function SocialMediaComponent() {
   );
 }
 export default SocialMediaComponent;
+
